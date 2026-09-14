@@ -1,0 +1,39 @@
+appId: com.soomakee.r6setups
+productName: R6 Setups
+copyright: Copyright © 2026 Soomakee
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - dist/**
+  - electron/**
+  - "!**/*.map"
+
+asar: true
+
+# Use the local Electron runtime instead of re-downloading/re-extracting
+# (avoids antivirus file locks on fresh electron.exe copies).
+electronDist: node_modules/electron/dist
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: R6-Setups-Setup-${version}.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
+  createDesktopShortcut: always
+  shortcutName: R6 Setups
+
+publish:
+  provider: github
+  owner: Soomakee
+  repo: R6-Setups
+  releaseType: release
