@@ -37,7 +37,14 @@ function load(): StoreData {
       operators: parsed.operators?.length ? parsed.operators : OPERATORS,
       maps: MAPS.length ? MAPS : (parsed.maps ?? []),
       sitesByMap: parsed.sitesByMap ?? seeded.sitesByMap,
-      setups: parsed.setups ?? [],
+      // v0.1.2 -> v0.1.3: laserCount was renamed to gadgetCount.
+      setups: (parsed.setups ?? []).map((s) => {
+        const legacy = s as unknown as { laserCount?: number }
+        if (legacy.laserCount != null && s.gadgetCount == null) {
+          return { ...s, gadgetCount: legacy.laserCount }
+        }
+        return s
+      }),
     }
   } catch {
     return seeded
@@ -81,7 +88,15 @@ export function useStore() {
   }, [])
 
   const addSetup = useCallback(
-    (input: { operatorId: string; mapId: string; siteId: string; title: string; description: string; images: string[] }) => {
+    (input: {
+      operatorId: string
+      mapId: string
+      siteId: string
+      title: string
+      description: string
+      images: string[]
+      gadgetCount?: number
+    }) => {
       const now = Date.now()
       const setup: Setup = { id: uid('setup'), createdAt: now, updatedAt: now, ...input }
       setData((prev) => ({ ...prev, setups: [setup, ...prev.setups] }))

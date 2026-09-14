@@ -143,6 +143,29 @@ const DEFAULT_SITES: Record<string, SiteTemplate[]> = {
   ],
 }
 
+/** Per-operator gadget budget shown as a counter on setups. */
+export interface OperatorGadget {
+  /** Lower-case noun, e.g. "laser" — pluralized for labels. */
+  name: string
+  max: number
+}
+
+export const OPERATOR_GADGETS: Record<string, OperatorGadget> = {
+  'op:denari': { name: 'laser', max: 7 },
+  'op:valkyrie': { name: 'cam', max: 3 },
+  'op:azami': { name: 'Kiba barrier', max: 5 },
+}
+
+export function gadgetFor(operatorId: string): OperatorGadget | undefined {
+  return OPERATOR_GADGETS[operatorId]
+}
+
+export function pluralize(gadget: OperatorGadget, n: number): string {
+  if (n === 1) return gadget.name
+  if (gadget.name === 'Kiba barrier') return 'Kiba barriers'
+  return `${gadget.name}s`
+}
+
 export function defaultSitesForMap(map: MapInfo): Site[] {
   const templates = DEFAULT_SITES[map.id.slice('map:'.length)] ?? []
   return templates.map(([name, floor]) => ({ id: '', name, floor }))

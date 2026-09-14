@@ -3,7 +3,7 @@ import type { MapInfo, Operator, Setup, Site } from '../types'
 import { SmartImage } from '../components/SmartImage'
 import { Modal } from '../components/Modal'
 import { ImageDropzone } from '../components/ImageDropzone'
-import { siteDisplayName } from '../lib/catalog'
+import { gadgetFor, pluralize, siteDisplayName } from '../lib/catalog'
 
 interface Props {
   operator: Operator
@@ -12,8 +12,8 @@ interface Props {
   setups: Setup[]
   uploadImage: (file: File) => Promise<string>
   onBack: () => void
-  onAdd: (input: { title: string; description: string; images: string[] }) => void
-  onUpdate: (id: string, patch: { title?: string; description?: string; images?: string[] }) => void
+  onAdd: (input: { title: string; description: string; images: string[]; gadgetCount?: number }) => void
+  onUpdate: (id: string, patch: { title?: string; description?: string; images?: string[]; gadgetCount?: number }) => void
   onRemove: (id: string) => void
 }
 
@@ -22,11 +22,17 @@ interface Editing {
   title: string
   description: string
   images: string[]
+  gadgetCount: number
 }
 
-const EMPTY: Editing = { id: null, title: '', description: '', images: [] }
+const EMPTY: Editing = { id: null, title: '', description: '', images: [], gadgetCount: 1 }
+
+function titleCase(name: string): string {
+  return name.charAt(0).toUpperCase() + name.slice(1)
+}
 
 export function SetupsScreen({ operator, map, site, setups, uploadImage, onBack, onAdd, onUpdate, onRemove }: Props) {
+  const gadget = gadgetFor(operator.id)
   const [editing, setEditing] = useState<Editing | null>(null)
   const [viewing, setViewing] = useState<Setup | null>(null)
   const [confirming, setConfirming] = useState<Setup | null>(null)
@@ -36,12 +42,23 @@ export function SetupsScreen({ operator, map, site, setups, uploadImage, onBack,
   }
 
   function openEdit(setup: Setup) {
-    setEditing({ id: setup.id, title: setup.title, description: setup.description, images: [...setup.images] })
+    setEditing({
+      id: setup.id,
+      title: setup.title,
+      description: setup.description,
+      images: [...setup.images],
+      gadgetCount: setup.gadgetCount ?? 1,
+    })
   }
 
   function save() {
     if (!editing || !editing.title.trim()) return
-    const payload = { title: editing.title.trim(), description: editing.description.trim(), images: editing.images }
+    const payload = {
+      title: editing.title.trim(),
+      description: editing.description.trim(),
+      images: editing.images,
+      gadgetCount: gadget ? editing.gadgetCount : undefined,
+    }
     if (editing.id) {
       onUpdate(editing.id, payload)
     } else {
@@ -94,7 +111,17 @@ export function SetupsScreen({ operator, map, site, setups, uploadImage, onBack,
                 {setup.images.length > 1 && <span className="img-count">{setup.images.length}</span>}
               </button>
               <div className="setup-body">
-                <h3 className="setup-title">{setup.title}</h3>
+                <div className="setup-title-row">
+                  <h3 className="setup-title">{setup.title}</h3>
+                  {gadget && setup.gadgetCount != null && (
+                    <span
+                      className={`laser-chip ${setup.gadgetCount >= gadget.max ? 'max' : ''}`}
+                      title={`${setup.gadgetCount} ${pluralize(gadget, setup.gadgetCount)} used`}
+                    >
+                      ◆ {setup.gadgetCount}/{gadget.max}
+                    </span>
+                  )}
+                </div>
                 {setup.description && <p className="setup-desc">{setup.description}</p>}
                 <div className="setup-actions">
                   <button type="button" className="btn small" onClick={() => openEdit(setup)}>
@@ -130,6 +157,48 @@ export function SetupsScreen({ operator, map, site, setups, uploadImage, onBack,
               placeholder="Steps, cam position, pixel alignment…"
             />
           </label>
+          {gadget && (
+            <div className="field">
+              <span>
+                {gadget.name === 'Kiba barrier' ? 'Kiba barriers' : `${titleCase(gadget.name)}s`} used
+              </span>
+              <div className="laser-stepper">
+                <button
+                  type="button"
+                  className="icon-btn"
+                  onClick={() => setEditing({ ...editing, gadgetCount: Math.max(1, editing.gadgetCount - 1) })}
+                  disabled={editing.gadgetCount <= 1}
+                  aria-label="Fewer"
+                >
+                  −
+                </button>
+                <div className="laser-pips">
+                  {Array.from({ length: gadget.max }, (_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      className={`pip ${i < editing.gadgetCount ? 'on' : ''}`}
+                      onClick={() => setEditing({ ...editing, gadgetCount: i + 1 })}
+                      title={`${i + 1} ${pluralize(gadget, i + 1)}`}
+                      aria-label={`${i + 1} ${pluralize(gadget, i + 1)}`}
+                    />
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="icon-btn"
+                  onClick={() => setEditing({ ...editing, gadgetCount: Math.min(gadget.max, editing.gadgetCount + 1) })}
+                  disabled={editing.gadgetCount >= gadget.max}
+                  aria-label="More"
+                >
+                  +
+                </button>
+                <span className="laser-count-label">
+                  {editing.gadgetCount} / {gadget.max}
+                </span>
+              </div>
+            </div>
+          )}
           <div className="field">
             <span>Images</span>
             <ImageDropzone
@@ -153,6 +222,11 @@ export function SetupsScreen({ operator, map, site, setups, uploadImage, onBack,
 
       {viewing && (
         <Modal title={viewing.title} onClose={() => setViewing(null)} wide>
+          {gadget && viewing.gadgetCount != null && (
+            <p className="laser-detail">
+              Uses <strong>{viewing.gadgetCount}</strong> of {gadget.max} {pluralize(gadget, viewing.gadgetCount)}
+            </p>
+          )}
           <p className="setup-desc detail">{viewing.description}</p>
           <div className="gallery">
             {viewing.images.map((img, i) => (

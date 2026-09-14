@@ -32,6 +32,8 @@ export interface Setup {
   title: string
   description: string
   images: ImageSource[]
+  /** How many operator gadgets this setup uses (e.g. Denari lasers, Valk cams, Kiba barriers). */
+  gadgetCount?: number
   createdAt: number
   updatedAt: number
 }
