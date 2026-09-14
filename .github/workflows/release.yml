@@ -2,6 +2,10 @@ name: Release
 
 # Push a tag like v0.1.1 to build and publish a new installer.
 # Users' installed apps pick it up automatically via electron-updater.
+#
+# Publishes in two steps (build, then gh release create + upload) so there
+# is always exactly ONE release per tag — electron-updater reads the first
+# release it finds, and a duplicate without latest.yml breaks update checks.
 on:
   push:
     tags:
@@ -27,7 +31,27 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build and publish installer to GitHub Releases
+      - name: Build installer (no publish)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --win nsis --publish always
+        run: npx electron-builder --win nsis --publish never
+
+      - name: Create release and upload assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -e
+          TAG="${GITHUB_REF_NAME}"
+          ASSETS=(release/*.exe release/*.exe.blockmap release/latest.yml)
+
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "Release $TAG already exists — replacing assets"
+            gh release upload "$TAG" "${ASSETS[@]}" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" "${ASSETS[@]}" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "R6 Setups ${TAG#v}" \
+              --notes "Installer for R6 Setups ${TAG#v}. Existing installs update automatically." \
+              --latest
+          fi
