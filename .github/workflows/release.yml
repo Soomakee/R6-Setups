@@ -31,6 +31,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Typecheck and build renderer
+        run: npm run build
+
+      - name: Verify renderer output exists
+        shell: bash
+        run: |
+          test -f dist/index.html || { echo "dist/index.html missing — renderer build failed"; exit 1; }
+          echo "renderer OK"
+
       - name: Build installer (no publish)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

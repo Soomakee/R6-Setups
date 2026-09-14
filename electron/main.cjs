@@ -80,6 +80,20 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null
   })
+
+  // Surface renderer problems in the main-process log.
+  mainWindow.webContents.on('console-message', (_e, level, message, line, sourceId) => {
+    if (level >= 2) console.log(`[renderer:${level}] ${message} (${sourceId}:${line})`)
+  })
+  mainWindow.webContents.on('did-fail-load', (_e, code, desc, url) => {
+    console.error(`[did-fail-load] ${code} ${desc} ${url}`)
+  })
+  mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow.webContents
+      .executeJavaScript("document.querySelectorAll('button').length")
+      .then((n) => console.log(`[r6] renderer loaded, buttons: ${n}`))
+      .catch(() => {})
+  })
 }
 
 app.whenReady().then(() => {
