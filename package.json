@@ -1,7 +1,7 @@
 {
   "name": "r6-lineup-tracker",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "R6 Setups — a lineup tracker for Rainbow Six Siege operators, maps, and bomb sites.",
   "type": "module",
   "main": "electron/main.cjs",
